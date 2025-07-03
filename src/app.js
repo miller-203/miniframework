@@ -1,0 +1,105 @@
+import { destroyDOM } from './destroy-dom.js'
+import { createDispatcher } from './dispatcher.js'
+import { mountDOM } from './mount-dom.js'
+
+export function createApp({ state, view, reducers = {} }) {
+    let parentEl = null;
+    let vdom = null;
+    let isRendering = false;
+
+    const dispatcher = createDispatcher();
+    const subscriptions = [dispatcher.afterEveryCommand(renderApp)];
+
+    function emit(eventName, payload) {
+        dispatcher.dispatch(eventName, payload);
+    }
+
+    // Subscribe to user-defined reducers
+    for (const actionName in reducers) {
+        const reducer = reducers[actionName];
+        const subs = dispatcher.subscribe(actionName, payload => {
+            state = reducer(state, payload);
+        });
+        subscriptions.push(subs);
+    }
+
+    // Handle browser navigation
+    function handlePopState() {
+        const path = window.location.hash.slice(1) || '/';
+        dispatcher.dispatch('routeChange', path);
+    }
+    
+    window.addEventListener('popstate', handlePopState);
+
+    function navigate(path) {
+        window.location.hash = path === '/' ? '' : path;
+        emit('routeChange', path);
+    }
+
+    function renderApp() {
+        // Prevent re-entrant rendering
+        if (isRendering) return;
+        isRendering = true;
+
+        // Store focus state with more specific handling
+        const activeElement = document.activeElement;
+        const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+        const isEditingInput = isInput && activeElement.classList.contains('edit');
+        const cursorPos = isInput ? activeElement.selectionStart : null;
+        const cursorEnd = isInput ? activeElement.selectionEnd : null;
+        const elementClass = isInput ? activeElement.className : null;
+        const elementId = isInput && activeElement.dataset ? activeElement.dataset.todoId : null;
+
+        if (vdom) {
+            destroyDOM(vdom);
+        }
+        vdom = view(state, emit, navigate);
+        mountDOM(vdom, parentEl);
+
+        // Restore focus and cursor position
+        if (isInput && elementClass) {
+            let targetInput = null;
+            
+            if (isEditingInput && elementId) {
+                // For edit inputs, find by todo ID
+                targetInput = parentEl.querySelector(`input.edit[data-todo-id="${elementId}"]`);
+            } else if (!isEditingInput) {
+                // For other inputs, find by class
+                targetInput = parentEl.querySelector(`input.${elementClass.replace(/\s+/g, '.')}`);
+            }
+            
+            if (targetInput) {
+                targetInput.focus();
+                if (cursorPos !== null && cursorEnd !== null) {
+                    targetInput.setSelectionRange(cursorPos, cursorEnd);
+                }
+            }
+        }
+
+        // Auto-focus edit input when editing starts (only if no other input was focused)
+        if (state.editingId && !isEditingInput) {
+            setTimeout(() => {
+                const editInput = parentEl.querySelector(`input.edit[data-todo-id="${state.editingId}"]`);
+                if (editInput) {
+                    editInput.focus();
+                    editInput.select(); // Select all text for easier editing
+                }
+            }, 0);
+        }
+
+        isRendering = false;
+    }
+
+    return {
+        mount(_parentEl) {
+            parentEl = _parentEl;
+            renderApp();
+        },
+        unmount() {
+            window.removeEventListener('popstate', handlePopState);
+            if (vdom) destroyDOM(vdom);
+            vdom = null;
+            subscriptions.forEach(unsubscribe => unsubscribe());
+        }
+    };
+}

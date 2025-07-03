@@ -1,6 +1,6 @@
 import { destroyDOM } from './destroy-dom.js'
 import { createDispatcher } from './dispatcher.js'
-import { mountDOM } from './mount-dom.js'
+import { diffAndPatch } from './diff_algo.js'
 
 export function createApp({ state, view, reducers = {} }) {
     let parentEl = null;
@@ -14,22 +14,16 @@ export function createApp({ state, view, reducers = {} }) {
         dispatcher.dispatch(eventName, payload);
     }
 
-    // Subscribe to user-defined reducers
     for (const actionName in reducers) {
         const reducer = reducers[actionName];
         const subs = dispatcher.subscribe(actionName, payload => {
-            state = reducer(state, payload);
+            const newState = reducer(state, payload);
+            if (newState !== state) {
+                state = newState;
+            }
         });
         subscriptions.push(subs);
     }
-
-    // Handle browser navigation
-    function handlePopState() {
-        const path = window.location.hash.slice(1) || '/';
-        dispatcher.dispatch('routeChange', path);
-    }
-    
-    window.addEventListener('popstate', handlePopState);
 
     function navigate(path) {
         window.location.hash = path === '/' ? '' : path;
@@ -37,54 +31,38 @@ export function createApp({ state, view, reducers = {} }) {
     }
 
     function renderApp() {
-        // Prevent re-entrant rendering
         if (isRendering) return;
         isRendering = true;
 
-        // Store focus state with more specific handling
-        const activeElement = document.activeElement;
-        const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
-        const isEditingInput = isInput && activeElement.classList.contains('edit');
-        const cursorPos = isInput ? activeElement.selectionStart : null;
-        const cursorEnd = isInput ? activeElement.selectionEnd : null;
-        const elementClass = isInput ? activeElement.className : null;
-        const elementId = isInput && activeElement.dataset ? activeElement.dataset.todoId : null;
+        try {
+            const activeElement = document.activeElement;
+            const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+            const cursorPos = isInput ? activeElement.selectionStart : null;
+            const cursorEnd = isInput ? activeElement.selectionEnd : null;
+            const elementClass = isInput ? activeElement.className : null;
+            const elementDataId = isInput ? activeElement.dataset.todoId : null;
 
-        if (vdom) {
-            destroyDOM(vdom);
-        }
-        vdom = view(state, emit, navigate);
-        mountDOM(vdom, parentEl);
+            const newVdom = view(state, emit, navigate);
+            vdom = diffAndPatch(vdom, newVdom, parentEl);
 
-        // Restore focus and cursor position
-        if (isInput && elementClass) {
-            let targetInput = null;
-            
-            if (isEditingInput && elementId) {
-                // For edit inputs, find by todo ID
-                targetInput = parentEl.querySelector(`input.edit[data-todo-id="${elementId}"]`);
-            } else if (!isEditingInput) {
-                // For other inputs, find by class
-                targetInput = parentEl.querySelector(`input.${elementClass.replace(/\s+/g, '.')}`);
-            }
-            
-            if (targetInput) {
-                targetInput.focus();
-                if (cursorPos !== null && cursorEnd !== null) {
-                    targetInput.setSelectionRange(cursorPos, cursorEnd);
+            if (isInput) {
+                let targetInput = null;
+
+                if (elementDataId) {
+                    targetInput = document.querySelector(`[data-todo-id="${elementDataId}"]`);
+                } else if (elementClass) {
+                    targetInput = document.querySelector(`.${elementClass.split(' ')[0]}`);
+                }
+
+                if (targetInput && typeof targetInput.focus === 'function') {
+                    targetInput.focus();
+                    if (cursorPos !== null && cursorEnd !== null) {
+                        targetInput.setSelectionRange(cursorPos, cursorEnd);
+                    }
                 }
             }
-        }
-
-        // Auto-focus edit input when editing starts (only if no other input was focused)
-        if (state.editingId && !isEditingInput) {
-            setTimeout(() => {
-                const editInput = parentEl.querySelector(`input.edit[data-todo-id="${state.editingId}"]`);
-                if (editInput) {
-                    editInput.focus();
-                    editInput.select(); // Select all text for easier editing
-                }
-            }, 0);
+        } catch (error) {
+            console.error('Render error:', error);
         }
 
         isRendering = false;
@@ -96,10 +74,15 @@ export function createApp({ state, view, reducers = {} }) {
             renderApp();
         },
         unmount() {
-            window.removeEventListener('popstate', handlePopState);
             if (vdom) destroyDOM(vdom);
             vdom = null;
             subscriptions.forEach(unsubscribe => unsubscribe());
+        },
+        getState() {
+            return state;
+        },
+        forceUpdate() {
+            renderApp();
         }
     };
 }

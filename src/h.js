@@ -4,6 +4,7 @@ export function CreateElement(tag, props = {}, children = []) {
         props,
         type: "element",
         children: mapTextNodes(withoutNulls(children)),
+        key: props.key || null
     }
 }
 
@@ -14,9 +15,9 @@ export function CreateElementText(str) {
     }
 }
 
-export function CreateElementFragement(vNodes) {
+export function CreateElementFragment(vNodes) {
     return {
-        type: "fragement",
+        type: "fragment",
         children: mapTextNodes(withoutNulls(vNodes)),
     }
 }

@@ -13,7 +13,7 @@ export function createDispatcher() {
         handlers.push(handler);
         return () => {
             const idx = handlers.indexOf(handler);
-            handlers.splice(idx, 1);
+            if (idx > -1) handlers.splice(idx, 1);
         };
     }
 
@@ -21,15 +21,19 @@ export function createDispatcher() {
         afterHandlers.push(handler);
         return () => {
             const idx = afterHandlers.indexOf(handler);
-            afterHandlers.splice(idx, 1);
+            if (idx > -1) afterHandlers.splice(idx, 1);
         };
     }
 
     function dispatch(commandName, payload) {
-        if (subs.has(commandName)) {
-            subs.get(commandName).forEach(handler => handler(payload));
+        try {
+            if (subs.has(commandName)) {
+                subs.get(commandName).forEach(handler => handler(payload));
+            }
+            afterHandlers.forEach(handler => handler(commandName, payload));
+        } catch (error) {
+            console.error(`Error dispatching ${commandName}:`, error);
         }
-        afterHandlers.forEach(handler => handler());
     }
 
     return { subscribe, afterEveryCommand, dispatch };

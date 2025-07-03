@@ -132,8 +132,9 @@ function view(state, emit, navigate) {
         CreateElement('header', { class: 'header' }, [
             CreateElement('h1', {}, ['todos']),
             CreateElement('input', {
-                class: 'new-todo',
+                className: 'new-todo',
                 placeholder: 'What needs to be done?',
+                maxlength: 10,
                 value: newTodo,
                 autofocus: true,
                 on: {
@@ -176,6 +177,7 @@ function view(state, emit, navigate) {
                             CreateElement('input', {
                                 class: 'toggle',
                                 type: 'checkbox',
+
                                 checked: todo.completed,
                                 on: { change: () => emit('toggleTodo', todo.id) }
                             }),
@@ -284,7 +286,6 @@ const app = createApp({
     reducers
 });
 
-// Set initial route
 const hash = window.location.hash.slice(2);
 if (hash === 'active') {
     appState.filter = FILTERS.ACTIVE;

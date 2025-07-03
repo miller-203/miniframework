@@ -34,7 +34,7 @@ function createElementNode(vdom, parentEl) {
     
     const { on: events, ...attrs } = props;
     vdom.listeners = addEventListeners(events, element);
-    setAttributes(element, attrs);
+    setAttributes(element, attrs);    
     
     vdom.el = element;
     children.forEach(child => mountDOM(child, element));

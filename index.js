@@ -279,7 +279,6 @@ function view(state, emit, navigate) {
     ]);
 }
 
-// Initialize app
 const app = createApp({
     state: appState,
     view,

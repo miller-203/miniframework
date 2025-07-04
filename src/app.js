@@ -35,6 +35,7 @@ export function createApp({ state, view, reducers = {} }) {
     }
 
     function renderApp() {
+        
         if (isRendering) return;
         isRendering = true;
 

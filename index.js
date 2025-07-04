@@ -148,7 +148,6 @@ function view(state, emit, navigate) {
             })
         ]),
         
-        // Main section
         todos.length > 0 ? CreateElement('section', { class: 'main' }, [
             CreateElement('input', {
                 id: 'toggle-all',

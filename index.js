@@ -128,7 +128,6 @@ function view(state, emit, navigate) {
     const allCompleted = todos.length > 0 && activeTodoCount === 0;
 
     return CreateElement('section', { class: 'todoapp' }, [
-        // Header
         CreateElement('header', { class: 'header' }, [
             CreateElement('h1', {}, ['todos']),
             CreateElement('input', {

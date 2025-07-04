@@ -221,7 +221,6 @@ function view(state, emit, navigate) {
             )
         ]) : null,
         
-        // Footer
         todos.length > 0 ? CreateElement('footer', { class: 'footer' }, [
             CreateElement('span', { class: 'todo-count' }, [
                 CreateElement('strong', {}, [activeTodoCount.toString()]),

@@ -1,6 +1,6 @@
 export function setAttributes(el, attrs) {
-    const { class: className, style, ...otherAttrs } = attrs;
-    
+    const { class: className, style, dataset, ...otherAttrs } = attrs;
+        
     if (className) {
         el.className = typeof className === 'string' ? className : '';
     }
@@ -8,6 +8,12 @@ export function setAttributes(el, attrs) {
     if (style) {
         Object.entries(style).forEach(([prop, value]) => {
             el.style[prop] = value;
+        });
+    }
+    
+    if (dataset) {
+        Object.entries(dataset).forEach(([key, value]) => {
+            el.dataset[key] = value;
         });
     }
     

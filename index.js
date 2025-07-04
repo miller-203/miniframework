@@ -134,6 +134,7 @@ function view(state, emit, navigate) {
             CreateElement('input', {
                 class: 'new-todo',
                 placeholder: 'What needs to be done?',
+                maxlength: 60,
                 value: newTodo,
                 autofocus: true,
                 on: {
@@ -195,6 +196,7 @@ function view(state, emit, navigate) {
                         
                         isEditing ? CreateElement('input', {
                             class: 'edit',
+                            maxlength: 60,
                             value: editingText,
                             'data-todo-id': todo.id.toString(),
                             on: {

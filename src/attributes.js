@@ -18,7 +18,10 @@ export function setAttributes(el, attrs) {
         } else if (name.startsWith('data-')) {
             el.setAttribute(name, value);
         } else {
-            el[name] = value;
+            el.setAttribute(name, value);
+            if (typeof value === 'boolean') {
+                el[name] = value;
+            }
         }
     }
 }

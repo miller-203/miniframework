@@ -8,7 +8,7 @@ export function createDispatcher() {
         }
         const handlers = subs.get(commandName);
         if (handlers.includes(handler)) {
-            return () => {};
+            return () => { };
         }
         handlers.push(handler);
         return () => {

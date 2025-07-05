@@ -1,119 +1,103 @@
 import { mountDOM } from './mount-dom.js'
 import { destroyDOM } from './destroy-dom.js'
 import { setAttributes } from './attributes.js'
-import { addEventListeners } from './events.js'
+import { addEventListeners, removeEventListeners} from './events.js'
 
-export function diffAndPatch(oldVdom, newVdom, parentEl) {
+export function patchDOM(oldVdom, newVdom, parentEl) {
     if (!oldVdom) {
         mountDOM(newVdom, parentEl);
-        return newVdom;
+        return;
     }
 
     if (!newVdom) {
         destroyDOM(oldVdom);
-        return null;
+        return;
     }
 
     if (oldVdom.type !== newVdom.type) {
-        const oldEl = oldVdom.el;
+        const nextSibling = oldVdom.el.nextSibling;
         destroyDOM(oldVdom);
         mountDOM(newVdom, parentEl);
-        
-        if (oldEl && oldEl.parentNode) {
-            oldEl.parentNode.replaceChild(newVdom.el, oldEl);
+        if (nextSibling) {
+            parentEl.insertBefore(newVdom.el, nextSibling);
         }
-        
-        return newVdom;
+        return;
     }
 
-    switch (oldVdom.type) {
-        case 'text':
-            return patchText(oldVdom, newVdom);
-        case 'element':
-            return patchElement(oldVdom, newVdom);
-        case 'fragment':
-            return patchFragment(oldVdom, newVdom);
-        default:
-            throw new Error(`Unknown vdom type: ${oldVdom.type}`);
+    newVdom.el = oldVdom.el;
+
+    switch (newVdom.type) {
+        case "text":
+            patchText(oldVdom, newVdom);
+            break;
+        case "element":
+            patchElement(oldVdom, newVdom);
+            break;
+        case "fragment":
+            patchFragment(oldVdom, newVdom);
+            break;
     }
 }
 
 function patchText(oldVdom, newVdom) {
     if (oldVdom.value !== newVdom.value) {
-        oldVdom.el.textContent = newVdom.value;
+        oldVdom.el.nodeValue = newVdom.value;
     }
-    
-    newVdom.el = oldVdom.el;
-    return newVdom;
 }
 
 function patchElement(oldVdom, newVdom) {
     const el = oldVdom.el;
-    newVdom.el = el;
 
     patchAttributes(oldVdom.props, newVdom.props, el);
-    patchEventListeners(oldVdom, newVdom, el);
-    patchChildren(oldVdom.children, newVdom.children, el);
-
-    return newVdom;
-}
-
-function patchAttributes(oldProps, newProps, el) {
-    Object.keys(oldProps).forEach(name => {
-        if (name === 'on' || name === 'key') return;
-        if (!(name in newProps)) {
-            if (name === 'class') {
-                el.className = '';
-            } else if (name === 'style') {
-                el.style.cssText = '';
-            } else {
-                el.removeAttribute(name);
-            }
-        }
-    });
-
-    Object.entries(newProps).forEach(([name, value]) => {
-        if (name === 'on' || name === 'key') return;
-        if (oldProps[name] !== value) {
-            setAttributes(el, { [name]: value });
-        }
-    });
-}
-
-function patchEventListeners(oldVdom, newVdom, el) {
-    const oldListeners = oldVdom.props.on || {};
-    const newListeners = newVdom.props.on || {};
 
     if (oldVdom.listeners) {
-        Object.keys(oldListeners).forEach(eventName => {
-            if (!(eventName in newListeners)) {
-                el.removeEventListener(eventName, oldVdom.listeners[eventName]);
-            }
-        });
+        removeEventListeners(oldVdom.listeners, el);
     }
+    const { on: events} = newVdom.props;
+    newVdom.listeners = addEventListeners(events, el);
 
-    newVdom.listeners = addEventListeners(newListeners, el);
+    patchChildren(oldVdom.children, newVdom.children, el);
+}
+
+function patchFragment(oldVdom, newVdom) {
+    patchChildren(oldVdom.children, newVdom.children, oldVdom.el);
 }
 
 function patchChildren(oldChildren, newChildren, parentEl) {
     const maxLength = Math.max(oldChildren.length, newChildren.length);
-    
+
     for (let i = 0; i < maxLength; i++) {
         const oldChild = oldChildren[i];
         const newChild = newChildren[i];
-        
+
         if (!oldChild && newChild) {
             mountDOM(newChild, parentEl);
         } else if (oldChild && !newChild) {
             destroyDOM(oldChild);
         } else if (oldChild && newChild) {
-            diffAndPatch(oldChild, newChild, parentEl);
+            patchDOM(oldChild, newChild, parentEl);
         }
     }
 }
 
-function patchFragment(oldVdom, newVdom) {
-    newVdom.el = oldVdom.el;
-    patchChildren(oldVdom.children, newVdom.children, oldVdom.el);
-    return newVdom;
+function patchAttributes(oldProps, newProps, el) {
+    const { on: oldEvents, ...oldAttrs } = oldProps;
+    const { on: newEvents, ...newAttrs } = newProps;
+
+    Object.keys(oldAttrs).forEach(key => {
+        if (!(key in newAttrs)) {
+            if (key === 'class') {
+                el.className = '';
+            } else if (key.startsWith('data-')) {
+                el.removeAttribute(key);
+            } else {
+                el.removeAttribute(key);
+                if (key in el) {
+                    el[key] = null;
+                }
+            }
+        }
+    });
+
+    setAttributes(el, newAttrs);
 }

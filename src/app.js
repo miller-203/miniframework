@@ -1,6 +1,7 @@
 import { destroyDOM } from './destroy-dom.js'
 import { createDispatcher } from './dispatcher.js'
-import { diffAndPatch } from './diff_algo.js'
+import { mountDOM } from './mount-dom.js'
+import { patchDOM } from './diff_algo.js'
 
 export function createApp({ state, view, reducers = {} }) {
     let parentEl = null;
@@ -17,10 +18,7 @@ export function createApp({ state, view, reducers = {} }) {
     for (const actionName in reducers) {
         const reducer = reducers[actionName];
         const subs = dispatcher.subscribe(actionName, payload => {
-            const newState = reducer(state, payload);
-            if (newState !== state) {
-                state = newState;
-            }
+            state = reducer(state, payload);
         });
         subscriptions.push(subs);
     }
@@ -29,16 +27,14 @@ export function createApp({ state, view, reducers = {} }) {
         const path = window.location.hash.slice(1) || '/';
         dispatcher.dispatch('routeChange', path);
     }
-    
+
     window.addEventListener('popstate', handlePopState);
 
     function navigate(path) {
         window.location.hash = path === '/' ? '' : path;
-        emit('routeChange', path);
     }
 
     function renderApp() {
-        
         if (isRendering) return;
         isRendering = true;
 
@@ -51,17 +47,24 @@ export function createApp({ state, view, reducers = {} }) {
         const elementId = isInput && activeElement.dataset ? activeElement.dataset.todoId : null;
 
         const newVdom = view(state, emit, navigate);
-        vdom = diffAndPatch(vdom, newVdom, parentEl);
+
+        if (vdom) {
+            patchDOM(vdom, newVdom, parentEl);
+        } else {
+            mountDOM(newVdom, parentEl);
+        }
+
+        vdom = newVdom;
 
         if (isInput && elementClass) {
             let targetInput = null;
-            
+
             if (isEditingInput && elementId) {
                 targetInput = parentEl.querySelector(`input.edit[data-todo-id="${elementId}"]`);
             } else if (!isEditingInput) {
                 targetInput = parentEl.querySelector(`input.${elementClass.replace(/\s+/g, '.')}`);
             }
-            
+
             if (targetInput) {
                 targetInput.focus();
                 if (cursorPos !== null && cursorEnd !== null) {
@@ -93,6 +96,6 @@ export function createApp({ state, view, reducers = {} }) {
             if (vdom) destroyDOM(vdom);
             vdom = null;
             subscriptions.forEach(unsubscribe => unsubscribe());
-        },
+        }
     };
 }

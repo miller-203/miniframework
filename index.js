@@ -23,7 +23,7 @@ const reducers = {
         const text = state.newTodo.trim();
         if (!text) return state;
         
-        return {
+        const newState = {
             ...state,
             todos: [...state.todos, {
                 id: Date.now(),
@@ -32,6 +32,8 @@ const reducers = {
             }],
             newTodo: ''
         };
+        
+        return newState;
     },
     
     toggleTodo: (state, id) => ({
@@ -128,7 +130,6 @@ function view(state, emit, navigate) {
     const allCompleted = todos.length > 0 && activeTodoCount === 0;
 
     return CreateElement('section', { class: 'todoapp' }, [
-        // Header
         CreateElement('header', { class: 'header' }, [
             CreateElement('h1', {}, ['todos']),
             CreateElement('input', {
@@ -141,14 +142,17 @@ function view(state, emit, navigate) {
                     input: e => emit('updateNewTodo', e.target.value),
                     keypress: e => {
                         if (e.key === 'Enter') {
+                            e.preventDefault();
                             emit('addTodo');
+                            setTimeout(() => {
+                                e.target.value = '';
+                            }, 0);
                         }
                     }
                 }
             })
         ]),
         
-        // Main section
         todos.length > 0 ? CreateElement('section', { class: 'main' }, [
             CreateElement('input', {
                 id: 'toggle-all',
@@ -159,8 +163,11 @@ function view(state, emit, navigate) {
             }),
             CreateElement('label', { 
                 for: 'toggle-all',
-                on : { click: () =>
-                    emit('toggleAll')
+                on: { 
+                    click: (e) => {
+                        e.preventDefault();
+                        emit('toggleAll');
+                    }
                 }
             }, ['Mark all as complete']),
             
@@ -201,8 +208,7 @@ function view(state, emit, navigate) {
                             'data-todo-id': todo.id.toString(),
                             on: {
                                 input: e => emit('updateEditingText', e.target.value),
-                                blur: e => { emit('saveEdit')
-                                },
+                                blur: e => { emit('saveEdit') },
                                 keypress: e => {
                                     if (e.key === 'Enter') {
                                         e.preventDefault();
@@ -222,7 +228,6 @@ function view(state, emit, navigate) {
             )
         ]) : null,
         
-        // Footer
         todos.length > 0 ? CreateElement('footer', { class: 'footer' }, [
             CreateElement('span', { class: 'todo-count' }, [
                 CreateElement('strong', {}, [activeTodoCount.toString()]),
@@ -279,14 +284,12 @@ function view(state, emit, navigate) {
     ]);
 }
 
-// Initialize app
 const app = createApp({
     state: appState,
     view,
     reducers
 });
 
-// Set initial route
 const hash = window.location.hash.slice(2);
 if (hash === 'active') {
     appState.filter = FILTERS.ACTIVE;

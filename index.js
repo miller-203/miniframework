@@ -141,7 +141,7 @@ function view(state, emit, navigate) {
                 on: {
                     input: e => emit('updateNewTodo', e.target.value),
                     keypress: e => {
-                        if (e.key === 'Enter') {
+                        if (e.key === 'Enter' && e.target.value.length >= 2) {
                             e.preventDefault();
                             emit('addTodo');
                             setTimeout(() => {

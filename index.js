@@ -82,12 +82,6 @@ const reducers = {
         };
     },
     
-    cancelEdit: (state) => ({
-        ...state,
-        editingId: null,
-        editingText: ''
-    }),
-    
     toggleAll: (state) => {
         const allCompleted = state.todos.every(todo => todo.completed);
         return {
@@ -215,12 +209,6 @@ function view(state, emit, navigate) {
                                         emit('saveEdit');
                                     }
                                 },
-                                keydown: e => {
-                                    if (e.key === 'Escape') {
-                                        e.preventDefault();
-                                        emit('cancelEdit');
-                                    }
-                                }
                             }
                         }) : null
                     ]);

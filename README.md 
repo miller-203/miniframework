@@ -1,0 +1,170 @@
+# Mini Framework
+
+A lightweight, reactive JavaScript framework with virtual DOM, state management, and routing.
+
+## Features
+
+- **Virtual DOM**: Efficient DOM updates through diffing
+- **State Management**: Redux-like reducers and actions
+- **Event Handling**: Automatic event cleanup
+- **Routing**: Hash-based navigation
+- **Focus Management**: Preserves input state during updates
+
+## Quick Start
+
+```javascript
+import { createApp } from './src/app.js';
+import { CreateElement } from './src/h.js';
+
+const app = createApp({
+    state: { count: 0 },
+    view: (state, emit) => 
+        CreateElement('div', {}, [
+            CreateElement('p', {}, [`Count: ${state.count}`]),
+            CreateElement('button', {
+                on: { click: () => emit('increment') }
+            }, ['Increment'])
+        ]),
+    reducers: {
+        increment: (state) => ({ ...state, count: state.count + 1 })
+    }
+});
+
+app.mount(document.getElementById('app'));
+```
+
+## API Reference
+
+### Creating Elements
+
+```javascript
+// Basic element
+CreateElement('h1', {}, ['Hello World'])
+
+// With attributes and events
+CreateElement('input', {
+    class: 'form-input',
+    type: 'text',
+    placeholder: 'Enter text...',
+    on: {
+        input: (e) => emit('textChanged', e.target.value),
+        keypress: (e) => {
+            if (e.key === 'Enter') {
+                emit('submitForm');
+            }
+        }
+    }
+})
+
+// Nested elements
+CreateElement('div', { class: 'card' }, [
+    CreateElement('h2', {}, ['Title']),
+    CreateElement('p', {}, ['Content']),
+    CreateElement('button', {
+        on: { click: () => emit('cardAction') }
+    }, ['Action'])
+])
+```
+
+### State Management
+
+```javascript
+const reducers = {
+    // Simple update
+    updateName: (state, name) => ({ ...state, name }),
+    
+    // Complex update
+    addTodo: (state) => ({
+        ...state,
+        todos: [...state.todos, {
+            id: Date.now(),
+            text: state.newTodo,
+            completed: false
+        }],
+        newTodo: ''
+    }),
+    
+    // Conditional update
+    toggleTodo: (state, id) => ({
+        ...state,
+        todos: state.todos.map(todo =>
+            todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        )
+    })
+};
+```
+
+### View Function
+
+```javascript
+function view(state, emit, navigate) {
+    const { todos, filter } = state;
+    
+    return CreateElement('div', { class: 'app' }, [
+        CreateElement('h1', {}, ['Todo App']),
+        
+        CreateElement('input', {
+            placeholder: 'Add todo...',
+            value: state.newTodo,
+            on: {
+                input: e => emit('updateNewTodo', e.target.value),
+                keypress: e => e.key === 'Enter' && emit('addTodo')
+            }
+        }),
+        
+        CreateElement('ul', {},
+            todos.map(todo =>
+                CreateElement('li', {}, [
+                    CreateElement('span', {}, [todo.text]),
+                    CreateElement('button', {
+                        on: { click: () => emit('toggleTodo', todo.id) }
+                    }, [todo.completed ? 'Undo' : 'Complete'])
+                ])
+            )
+        )
+    ]);
+}
+```
+
+## How It Works
+
+### Virtual DOM Flow
+1. **State Change**: `emit('action', payload)` triggers reducer
+2. **New State**: Reducer returns updated state
+3. **Re-render**: View function generates new virtual DOM
+4. **Diffing**: Framework compares old vs new virtual trees
+5. **Patching**: Only changed elements are updated in real DOM
+
+### Architecture
+- **Unidirectional Data Flow**: State → View → Actions → State
+- **Pure Functions**: Reducers are predictable and testable
+- **Efficient Updates**: Smart diffing minimizes DOM operations
+- **Memory Safe**: Automatic cleanup prevents memory leaks
+
+### Event System
+Events are attached directly to DOM elements and automatically cleaned up:
+```javascript
+// Framework handles this internally
+element.onclick = handler;  // Added during mount
+element.onclick = null;     // Removed during unmount
+```
+
+### Focus Preservation
+The framework intelligently maintains input focus and cursor position during updates, making forms feel responsive and natural.
+
+## Performance Features
+
+- **Minimal DOM Operations**: Only necessary changes are applied
+- **Batched Updates**: Multiple state changes render once
+- **Smart Re-rendering**: Guards prevent concurrent renders
+- **Efficient Diffing**: Type checking and bailouts optimize performance
+
+## Example: TodoMVC
+The included TodoMVC implementation demonstrates:
+- Complex state management
+- Dynamic list rendering
+- Form handling and validation
+- Routing between views
+- Inline editing with focus management
+
+Perfect for building modern web apps without the complexity of larger frameworks.

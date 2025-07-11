@@ -1,5 +1,5 @@
-import { CreateElement } from './src/h.js'
-import { createApp } from './src/app.js'
+import { CreateElement, CreateElementFragment} from './src/h.js'
+import { createApp} from './src/app.js'
 
 
 const FILTERS = {
@@ -123,7 +123,7 @@ function view(state, emit, navigate) {
     const completedCount = todos.length - activeTodoCount;
     const allCompleted = todos.length > 0 && activeTodoCount === 0;
 
-    return CreateElement('section', { class: 'todoapp' }, [
+    return CreateElementFragment([
         CreateElement('header', { class: 'header' }, [
             CreateElement('h1', {}, ['todos']),
             CreateElement('input', {
@@ -147,7 +147,7 @@ function view(state, emit, navigate) {
             })
         ]),
         
-        todos.length > 0 ? CreateElement('section', { class: 'main' }, [
+        todos.length > 0 ? CreateElement('main', { class: 'main' }, [
             CreateElement('input', {
                 id: 'toggle-all',
                 class: 'toggle-all',
@@ -285,4 +285,4 @@ if (hash === 'active') {
     appState.filter = FILTERS.COMPLETED;
 }
 
-app.mount(document.getElementById('app'));
+app.mount(document.getElementById('root'));

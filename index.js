@@ -131,7 +131,6 @@ function view(state, emit, navigate) {
                 placeholder: 'What needs to be done?',
                 maxlength: 60,
                 value: newTodo,
-                autofocus: true,
                 on: {
                     input: e => emit('updateNewTodo', e.target.value),
                     keypress: e => {

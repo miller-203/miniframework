@@ -204,7 +204,7 @@ function view(state, emit, navigate) {
                                 input: e => emit('updateEditingText', e.target.value),
                                 blur: e => { emit('saveEdit') },
                                 keypress: e => {
-                                    if (e.key === 'Enter') {
+                                    if (e.key === 'Enter' && e.target.value.trim().length >= 2) {
                                         e.preventDefault();
                                         emit('saveEdit');
                                     }

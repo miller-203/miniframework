@@ -41,6 +41,7 @@ export function createApp({ state, view, reducers = {} }) {
         const activeElement = document.activeElement;
         const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
         const isEditingInput = isInput && activeElement.classList.contains('edit');
+        const isToggleInput = isInput && activeElement.classList.contains('toggle');
         const cursorPos = isInput ? activeElement.selectionStart : null;
         const cursorEnd = isInput ? activeElement.selectionEnd : null;
         const elementClass = isInput ? activeElement.className : null;
@@ -61,7 +62,9 @@ export function createApp({ state, view, reducers = {} }) {
 
             if (isEditingInput && elementId) {
                 targetInput = parentEl.querySelector(`input.edit[data-todo-id="${elementId}"]`);
-            } else if (!isEditingInput) {
+            } else if (isToggleInput && elementId) {
+                targetInput = parentEl.querySelector(`input.toggle[data-todo-id="${elementId}"]`);
+            } else if (!isEditingInput && !isToggleInput) {
                 targetInput = parentEl.querySelector(`input.${elementClass.replace(/\s+/g, '.')}`);
             }
 
@@ -87,6 +90,7 @@ export function createApp({ state, view, reducers = {} }) {
     }
 
     return {
+        emit,
         mount(_parentEl) {
             parentEl = _parentEl;
             renderApp();

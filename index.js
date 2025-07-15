@@ -120,7 +120,6 @@ function view(state, emit, navigate) {
     });
     
     const activeTodoCount = todos.filter(todo => !todo.completed).length;
-    const completedCount = todos.length - activeTodoCount;
     const allCompleted = todos.length > 0 && activeTodoCount === 0;
 
     return CreateElementFragment([
@@ -177,6 +176,7 @@ function view(state, emit, navigate) {
                             CreateElement('input', {
                                 class: 'toggle',
                                 type: 'checkbox',
+                                'data-todo-id': todo.id.toString(),
                                 checked: todo.completed,
                                 on: { change: () => emit('toggleTodo', todo.id) }
                             }),
@@ -263,10 +263,10 @@ function view(state, emit, navigate) {
                 ])
             ]),
             
-            completedCount > 0 ? CreateElement('button', {
+            CreateElement('button', {
                 class: 'clear-completed',
                 on: { click: () => emit('clearCompleted') }
-            }, ['Clear completed']) : null
+            }, ['Clear completed'])
         ]) : null
     ]);
 }

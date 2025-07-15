@@ -1,5 +1,5 @@
-import { CreateElement, CreateElementFragment} from './src/h.js'
-import { createApp} from './src/app.js'
+import { CreateElement, CreateElementFragment } from './src/h.js'
+import { createApp } from './src/app.js'
 
 
 const FILTERS = {
@@ -18,11 +18,11 @@ let appState = {
 
 const reducers = {
     updateNewTodo: (state, value) => ({ ...state, newTodo: value }),
-    
+
     addTodo: (state) => {
         const text = state.newTodo.trim();
         if (!text) return state;
-        
+
         const newState = {
             ...state,
             todos: [...state.todos, {
@@ -32,33 +32,33 @@ const reducers = {
             }],
             newTodo: ''
         };
-        
+
         return newState;
     },
-    
+
     toggleTodo: (state, id) => ({
         ...state,
         todos: state.todos.map(todo =>
             todo.id === id ? { ...todo, completed: !todo.completed } : todo
         )
     }),
-    
+
     deleteTodo: (state, id) => ({
         ...state,
         todos: state.todos.filter(todo => todo.id !== id)
     }),
-    
+
     startEditing: (state, { id, text }) => ({
         ...state,
         editingId: id,
         editingText: text
     }),
-    
+
     updateEditingText: (state, text) => ({
         ...state,
         editingText: text
     }),
-    
+
     saveEdit: (state) => {
         const trimmedText = state.editingText.trim();
         if (!trimmedText) {
@@ -69,11 +69,11 @@ const reducers = {
                 editingText: ''
             };
         }
-        
+
         return {
             ...state,
             todos: state.todos.map(todo =>
-                todo.id === state.editingId 
+                todo.id === state.editingId
                     ? { ...todo, text: trimmedText }
                     : todo
             ),
@@ -81,25 +81,49 @@ const reducers = {
             editingText: ''
         };
     },
-    
+
+    cancelEdit: (state) => ({
+        ...state,
+        editingId: null,
+        editingText: ''
+    }),
+
     toggleAll: (state) => {
         const allCompleted = state.todos.every(todo => todo.completed);
-        return {
-            ...state,
-            todos: state.todos.map(todo => ({ 
-                ...todo, 
-                completed: !allCompleted 
-            }))
-        };
+        if (state.filter === FILTERS.ACTIVE) {
+            return {
+                ...state,
+                todos: state.todos.map(todo => ({
+                    ...todo,
+                    completed: !allCompleted
+                }))
+            }
+        } else if (state.filter === FILTERS.COMPLETED) {
+            return {
+                ...state,
+                todos: state.todos.map(todo => ({
+                    ...todo,
+                    completed: allCompleted
+                }))
+            }
+        } else {
+            return {
+                ...state,
+                todos: state.todos.map(todo => ({
+                    ...todo,
+                    completed: !allCompleted
+                }))
+            }
+        }
     },
-    
+
     clearCompleted: (state) => ({
         ...state,
         todos: state.todos.filter(todo => !todo.completed)
     }),
-    
+
     setFilter: (state, filter) => ({ ...state, filter }),
-    
+
     routeChange: (state, path) => {
         let filter = FILTERS.ALL;
         if (path === '/active') filter = FILTERS.ACTIVE;
@@ -110,7 +134,7 @@ const reducers = {
 
 function view(state, emit, navigate) {
     const { todos, newTodo, filter, editingId, editingText } = state;
-    
+
     const filteredTodos = todos.filter(todo => {
         switch (filter) {
             case FILTERS.ACTIVE: return !todo.completed;
@@ -118,8 +142,9 @@ function view(state, emit, navigate) {
             default: return true;
         }
     });
-    
+
     const activeTodoCount = todos.filter(todo => !todo.completed).length;
+    const completedTodoCount = todos.filter(todo => todo.completed).length;
     const allCompleted = todos.length > 0 && activeTodoCount === 0;
 
     return CreateElementFragment([
@@ -144,7 +169,7 @@ function view(state, emit, navigate) {
                 }
             })
         ]),
-        
+
         todos.length > 0 ? CreateElement('main', { class: 'main' }, [
             CreateElement('input', {
                 id: 'toggle-all',
@@ -153,16 +178,16 @@ function view(state, emit, navigate) {
                 checked: allCompleted,
                 on: { change: () => emit('toggleAll') }
             }),
-            CreateElement('label', { 
+            CreateElement('label', {
                 for: 'toggle-all',
-                on: { 
+                on: {
                     click: (e) => {
                         e.preventDefault();
                         emit('toggleAll');
                     }
                 }
             }, ['Mark all as complete']),
-            
+
             CreateElement('ul', { class: 'todo-list' },
                 filteredTodos.map(todo => {
                     const isEditing = editingId === todo.id;
@@ -170,7 +195,7 @@ function view(state, emit, navigate) {
                         todo.completed ? 'completed' : '',
                         isEditing ? 'editing' : ''
                     ].filter(Boolean).join(' ');
-                    
+
                     return CreateElement('li', { class: todoClass }, [
                         CreateElement('div', { class: 'view' }, [
                             CreateElement('input', {
@@ -183,8 +208,8 @@ function view(state, emit, navigate) {
                             CreateElement('label', {
                                 on: {
                                     dblclick: () => emit('startEditing', {
-                                        id: todo.id, 
-                                        text: todo.text 
+                                        id: todo.id,
+                                        text: todo.text
                                     })
                                 }
                             }, [todo.text]),
@@ -193,7 +218,7 @@ function view(state, emit, navigate) {
                                 on: { click: () => emit('deleteTodo', todo.id) }
                             })
                         ]),
-                        
+
                         isEditing ? CreateElement('input', {
                             class: 'edit',
                             maxlength: 60,
@@ -201,7 +226,7 @@ function view(state, emit, navigate) {
                             'data-todo-id': todo.id.toString(),
                             on: {
                                 input: e => emit('updateEditingText', e.target.value),
-                                blur: e => { emit('saveEdit') },
+                                blur: e => { emit('cancelEdit') },
                                 keypress: e => {
                                     if (e.key === 'Enter' && e.target.value.trim().length >= 2) {
                                         e.preventDefault();
@@ -214,13 +239,13 @@ function view(state, emit, navigate) {
                 })
             )
         ]) : null,
-        
+
         todos.length > 0 ? CreateElement('footer', { class: 'footer' }, [
             CreateElement('span', { class: 'todo-count' }, [
                 CreateElement('strong', {}, [activeTodoCount.toString()]),
                 ` ${activeTodoCount === 1 ? 'item' : 'items'} left`
             ]),
-            
+
             CreateElement('ul', { class: 'filters' }, [
                 CreateElement('li', {}, [
                     CreateElement('a', {
@@ -262,9 +287,13 @@ function view(state, emit, navigate) {
                     }, ['Completed'])
                 ])
             ]),
-            
-            CreateElement('button', {
+
+            completedTodoCount > 0 ? CreateElement('button', {
                 class: 'clear-completed',
+                on: { click: () => emit('clearCompleted') }
+            }, ['Clear completed']) : CreateElement('button', {
+                class: 'clear-completed',
+                disabled: true,
                 on: { click: () => emit('clearCompleted') }
             }, ['Clear completed'])
         ]) : null

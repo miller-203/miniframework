@@ -16,7 +16,6 @@ export function createApp({ state, view, reducers = {} }) {
                     handler(payload);
                 });
             }
-
             afterRenderHandlers.forEach(handler => {
                 handler(eventName, payload);
             });

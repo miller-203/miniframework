@@ -1,35 +1,51 @@
 import { destroyDOM } from './destroy-dom.js'
-import { createDispatcher } from './dispatcher.js'
 import { mountDOM } from './mount-dom.js'
 import { patchDOM } from './diff_algo.js'
 
 export function createApp({ state, view, reducers = {} }) {
+    console.log(state);
+    
     let parentEl = null;
     let vdom = null;
     let isRendering = false;
-
-    const dispatcher = createDispatcher();
-    const subscriptions = [dispatcher.afterEveryCommand(renderApp)];
+    const eventHandlers = new Map();
+    const afterRenderHandlers = [];
 
     function emit(eventName, payload) {
-        dispatcher.dispatch(eventName, payload);
+        try {
+            if (eventHandlers.has(eventName)) {
+                eventHandlers.get(eventName).forEach(handler => {
+                    handler(payload);
+                });
+            }
+
+            afterRenderHandlers.forEach(handler => {
+                handler(eventName, payload);
+            });
+        } catch (error) {
+            console.error(`Error sending event${eventName}:`, error);
+        }
     }
 
     for (const actionName in reducers) {
         const reducer = reducers[actionName];
-        const subs = dispatcher.subscribe(actionName, payload => {
+
+        if (!eventHandlers.has(actionName)) {
+            eventHandlers.set(actionName, []);
+        }
+        eventHandlers.get(actionName).push((payload) => {
             state = reducer(state, payload);
         });
-        subscriptions.push(subs);
     }
+    afterRenderHandlers.push(() => {
+        renderApp();
+    });
 
     function handlePopState() {
         const path = window.location.hash.slice(1) || '/';
-        dispatcher.dispatch('routeChange', path);
+        emit('routeChange', path);
     }
-
     window.addEventListener('popstate', handlePopState);
-
     function navigate(path) {
         window.location.hash = path === '/' ? '' : path;
     }
@@ -48,15 +64,12 @@ export function createApp({ state, view, reducers = {} }) {
         const elementId = isInput && activeElement.dataset ? activeElement.dataset.todoId : null;
 
         const newVdom = view(state, emit, navigate);
-
         if (vdom) {
             patchDOM(vdom, newVdom, parentEl);
         } else {
             mountDOM(newVdom, parentEl);
         }
-
         vdom = newVdom;
-
         if (isInput && elementClass) {
             let targetInput = null;
 
@@ -99,7 +112,8 @@ export function createApp({ state, view, reducers = {} }) {
             window.removeEventListener('popstate', handlePopState);
             if (vdom) destroyDOM(vdom);
             vdom = null;
-            subscriptions.forEach(unsubscribe => unsubscribe());
+            eventHandlers.clear();
+            afterRenderHandlers.length = 0;
         }
     };
 }

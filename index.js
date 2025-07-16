@@ -90,22 +90,22 @@ const reducers = {
 
     toggleAll: (state) => {
         const allCompleted = state.todos.every(todo => todo.completed);
-        if (state.filter === FILTERS.ACTIVE) {
+        if (state.filter === FILTERS.COMPLETED) {
             return {
                 ...state,
                 todos: state.todos.map(todo => ({
                     ...todo,
-                    completed: !allCompleted
+                    completed: false
                 }))
-            }
-        } else if (state.filter === FILTERS.COMPLETED) {
+            };
+        } else if (state.filter === FILTERS.ACTIVE) {
             return {
                 ...state,
                 todos: state.todos.map(todo => ({
                     ...todo,
-                    completed: allCompleted
+                    completed: true
                 }))
-            }
+            };
         } else {
             return {
                 ...state,
@@ -113,7 +113,7 @@ const reducers = {
                     ...todo,
                     completed: !allCompleted
                 }))
-            }
+            };
         }
     },
 

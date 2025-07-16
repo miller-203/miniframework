@@ -3,8 +3,6 @@ import { mountDOM } from './mount-dom.js'
 import { patchDOM } from './diff_algo.js'
 
 export function createApp({ state, view, reducers = {} }) {
-    console.log(state);
-    
     let parentEl = null;
     let vdom = null;
     let isRendering = false;
